@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.huaweicloud.dis</groupId>
+    <artifactId>dis-spark-streaming-demo</artifactId>
+    <version>1.1.1</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <dis-kafka-adapter.version>1.1.1</dis-kafka-adapter.version>
+        <dis-spark-streaming_2.11.version>1.1.1</dis-spark-streaming_2.11.version>
+        <scala.binary.version>2.11</scala.binary.version>
+        <spark_2.11.version>2.2.0</spark_2.11.version>
+        
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.huaweicloud.dis</groupId>
+            <artifactId>huaweicloud-dis-kafka-adapter</artifactId>
+            <version>${dis-kafka-adapter.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.huaweicloud.dis</groupId>
+            <artifactId>dis-spark-streaming_2.11</artifactId>
+            <version>${dis-spark-streaming_2.11.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-streaming_${scala.binary.version}</artifactId>
+            <version>${spark_2.11.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <includeScope>runtime</includeScope>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <scalaVersion>${scala.binary.version}</scalaVersion>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>
