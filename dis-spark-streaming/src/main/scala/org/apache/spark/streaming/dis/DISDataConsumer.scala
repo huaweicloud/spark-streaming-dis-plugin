@@ -19,10 +19,10 @@ package org.apache.spark.streaming.dis
 
 import java.{util => ju}
 
-import com.huaweicloud.dis.adapter.kafka.consumer.DISKafkaConsumer
+import com.huaweicloud.dis.adapter.common.consumer.DisConsumerConfig
+import com.huaweicloud.dis.adapter.kafka.clients.consumer.{ConsumerRecord, DISKafkaConsumer}
+import com.huaweicloud.dis.adapter.kafka.common.TopicPartition
 import com.huaweicloud.dis.exception.DISClientException
-import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
-import org.apache.kafka.common.TopicPartition
 import org.apache.spark.TaskContext
 import org.apache.spark.internal.Logging
 
@@ -100,7 +100,7 @@ private[dis] class InternalDISConsumer[K, V](
     b
   }
   
-  private[dis] val groupId = kafkaParams.get(ConsumerConfig.GROUP_ID_CONFIG)
+  private[dis] val groupId = kafkaParams.get(DisConsumerConfig.GROUP_ID_CONFIG)
     .asInstanceOf[String]
 
   private val consumer = createConsumer
@@ -332,7 +332,7 @@ private[dis] object DISDataConsumer extends Logging {
       kafkaParams: ju.Map[String, Object],
       context: TaskContext,
       useCache: Boolean): DISDataConsumer[K, V] = synchronized {
-    val groupId = kafkaParams.get(ConsumerConfig.GROUP_ID_CONFIG).asInstanceOf[String]
+    val groupId = kafkaParams.get(DisConsumerConfig.GROUP_ID_CONFIG).asInstanceOf[String]
     val key = new CacheKey(groupId, topicPartition)
     val existingInternalConsumer = cache.get(key)
 

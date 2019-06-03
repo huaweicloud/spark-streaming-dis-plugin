@@ -1,6 +1,6 @@
 package org.apache.spark.streaming.dis
 
-import org.apache.kafka.common.TopicPartition
+import com.huaweicloud.dis.adapter.kafka.common.TopicPartition
 import org.json4s.NoTypeHints
 import org.json4s.jackson.Serialization
 

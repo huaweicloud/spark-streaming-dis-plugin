@@ -17,13 +17,12 @@
 
 package org.apache.spark.streaming.dis
 
-import java.{ util => ju }
+import java.{util => ju}
+
+import com.huaweicloud.dis.adapter.kafka.common.TopicPartition
+import org.apache.spark.annotation.Experimental
 
 import scala.collection.JavaConverters._
-
-import org.apache.kafka.common.TopicPartition
-
-import org.apache.spark.annotation.Experimental
 
 
 /**

@@ -19,11 +19,11 @@ package org.apache.spark.streaming.dis
 
 import java.{util => ju}
 
-import com.huaweicloud.dis.adapter.kafka.consumer.{DISKafkaConsumer, Fetcher}
+import com.huaweicloud.dis.adapter.common.consumer.DisConsumerConfig
+import com.huaweicloud.dis.adapter.kafka.clients.consumer.{ConsumerRecord, DISKafkaConsumer}
+import com.huaweicloud.dis.adapter.kafka.common.TopicPartition
 import com.huaweicloud.dis.iface.stream.request.DescribeStreamRequest
 import com.huaweicloud.dis.{DISClient, DISConfig}
-import org.apache.kafka.clients.consumer._
-import org.apache.kafka.common.TopicPartition
 import org.apache.spark.SparkContext
 import org.apache.spark.annotation.Experimental
 import org.apache.spark.api.java.{JavaRDD, JavaSparkContext}
@@ -221,27 +221,20 @@ object DISUtils extends Logging {
    * Tweak kafka params to prevent issues on executors
    */
   private[dis] def fixKafkaParams(kafkaParams: ju.HashMap[String, Object]): Unit = {
-    logWarning(s"overriding ${ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG} to false for executor")
-    kafkaParams.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false: java.lang.Boolean)
+    logWarning(s"overriding ${DisConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG} to false for executor")
+    kafkaParams.put(DisConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false: java.lang.Boolean)
 
-    logWarning(s"overriding ${ConsumerConfig.AUTO_OFFSET_RESET_CONFIG} to none for executor")
-    kafkaParams.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none")
+    logWarning(s"overriding ${DisConsumerConfig.AUTO_OFFSET_RESET_CONFIG} to none for executor")
+    kafkaParams.put(DisConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none")
 
     // driver and executor should be in different consumer groups
-    val originalGroupId = kafkaParams.get(ConsumerConfig.GROUP_ID_CONFIG)
+    val originalGroupId = kafkaParams.get(DisConsumerConfig.GROUP_ID_CONFIG)
     if (null == originalGroupId) {
-      logError(s"${ConsumerConfig.GROUP_ID_CONFIG} is null, you should probably set it")
+      logError(s"${DisConsumerConfig.GROUP_ID_CONFIG} is null, you should probably set it")
     }
     val groupId = "spark-executor-" + originalGroupId
-    logWarning(s"overriding executor ${ConsumerConfig.GROUP_ID_CONFIG} to ${groupId}")
-    kafkaParams.put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
-
-    // possible workaround for KAFKA-3135
-    val rbb = kafkaParams.get(ConsumerConfig.RECEIVE_BUFFER_CONFIG)
-    if (null == rbb || rbb.asInstanceOf[java.lang.Integer] < 65536) {
-      logWarning(s"overriding ${ConsumerConfig.RECEIVE_BUFFER_CONFIG} to 65536 see KAFKA-3135")
-      kafkaParams.put(ConsumerConfig.RECEIVE_BUFFER_CONFIG, 65536: java.lang.Integer)
-    }
+    logWarning(s"overriding executor ${DisConsumerConfig.GROUP_ID_CONFIG} to ${groupId}")
+    kafkaParams.put(DisConsumerConfig.GROUP_ID_CONFIG, groupId)
   }
 
   @Experimental
@@ -320,12 +313,11 @@ object DISUtils extends Logging {
       updateDisConfigParam(disConfig, DISConfig.PROPERTY_ENDPOINT, disParams.get(PROPERTY_ENDPOINT), false)
       updateDisConfigParam(disConfig, DISConfig.PROPERTY_IS_DEFAULT_TRUSTED_JKS_ENABLED,
         disParams.getOrDefault(PROPERTY_IS_DEFAULT_TRUSTED_JKS_ENABLED, "false"), false)
-      updateDisConfigParam(disConfig, Fetcher.KEY_MAX_PARTITION_FETCH_RECORDS,
-        disParams.getOrDefault(PROPERTY_MAX_PARTITION_FETCH_RECORDS, "500"), false)
-      updateDisConfigParam(disConfig, Fetcher.KEY_MAX_FETCH_THREADS,
+      // in sparkstreaming, one DISKafkaConsumer just consumer one partition ,so it's enough to set DISAsync thread-pool size to 1.
+      updateDisConfigParam(disConfig, DisConsumerConfig.MAX_FETCH_THREADS_CONFIG,
         disParams.getOrDefault(PROPERTY_MAX_FETCH_THREADS, "1"), false)
-      updateDisConfigParam(disConfig, ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-        disParams.getOrDefault(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "LATEST").toString.toUpperCase, false)
+      updateDisConfigParam(disConfig, DisConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+        disParams.getOrDefault(DisConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "LATEST").toString.toUpperCase, false)
       updateDisConfigParam(disConfig, DISConfig.PROPERTY_CONNECTION_TIMEOUT,
         disParams.get(PROPERTY_CONNECTION_TIMEOUT), false)
       updateDisConfigParam(disConfig, DISConfig.PROPERTY_SOCKET_TIMEOUT,
@@ -338,8 +330,8 @@ object DISUtils extends Logging {
         disParams.get(PROPERTY_DATA_PASSWORD), false)
       updateDisConfigParam(disConfig, DISConfig.PROPERTY_CONFIG_PROVIDER_CLASS,
         disParams.get(PROPERTY_CONFIG_PROVIDER_CLASS), false)
-      updateDisConfigParam(disConfig, ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,
-        disParams.getOrDefault(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false"), false)
+      updateDisConfigParam(disConfig, DisConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,
+        disParams.getOrDefault(DisConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false"), false)
       disConfig
   }
 
@@ -383,9 +375,8 @@ object DISUtils extends Logging {
   val PROPERTY_BODY_SERIALIZE_TYPE = DISConfig.PROPERTY_BODY_SERIALIZE_TYPE
   val PROPERTY_CONFIG_PROVIDER_CLASS = DISConfig.PROPERTY_CONFIG_PROVIDER_CLASS
   val PROPERTY_DATA_PASSWORD = DISConfig.PROPERTY_DATA_PASSWORD
-  val PROPERTY_AUTO_OFFSET_RESET = ConsumerConfig.AUTO_OFFSET_RESET_CONFIG
-  val PROPERTY_MAX_PARTITION_FETCH_RECORDS = Fetcher.KEY_MAX_PARTITION_FETCH_RECORDS
-  val PROPERTY_MAX_FETCH_THREADS = Fetcher.KEY_MAX_FETCH_THREADS
-  val PROPERTY_KEY_DESERIALIZER_CLASS = ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG
-  val PROPERTY_VALUE_DESERIALIZER_CLASS = ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG
+  val PROPERTY_AUTO_OFFSET_RESET = DisConsumerConfig.AUTO_OFFSET_RESET_CONFIG
+  val PROPERTY_MAX_FETCH_THREADS = DisConsumerConfig.MAX_FETCH_THREADS_CONFIG
+  val PROPERTY_KEY_DESERIALIZER_CLASS = DisConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG
+  val PROPERTY_VALUE_DESERIALIZER_CLASS = DisConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG
 }

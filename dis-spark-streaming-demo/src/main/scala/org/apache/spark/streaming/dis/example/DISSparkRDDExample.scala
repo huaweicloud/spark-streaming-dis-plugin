@@ -5,9 +5,9 @@ import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.JavaConverters._
 
-object DISSparkExample {
+object DISSparkRDDExample {
   def main(args: Array[String]): Unit = {
-    println("Start DIS Spark demo.")
+    println("Start DIS Spark RDD demo.")
     if (args.length < 7) {
       println(s"args is wrong, should be [endpoint region ak sk projectId streamName offsetRanges]".stripMargin)
       return
@@ -20,8 +20,8 @@ object DISSparkExample {
     // User ProjectId
     // DIS stream name
     // OffsetRanges: Use json format to specify the offsetRanges of each partition
-    //               SYNOPSIS: {"partitionNum1": [fromOffset1, untilOffset1], "partitionNum2": [fromOffset2, untilOffset2], ...}  (-1 indicates the latest, -2 indicates the earliest)
-    //               eg. {"0": [100, 200], "1": [-2, -1], "2": [100, -1]}
+    //               SYNOPSIS: "{\"partitionNum1\": [fromOffset1, untilOffset1], \"partitionNum2\": [fromOffset2, untilOffset2], ...}"  (-1 indicates the latest, -2 indicates the earliest)
+    //               eg. "{\"0\": [100, 200], \"1\": [-2, -1], \"2\": [100, -1]}"
     val (endpoint, region, ak, sk, projectId, streamName, offsetRanges)
     = (args(0), args(1), args(2), args(3), args(4), args(5), args(6))
 
