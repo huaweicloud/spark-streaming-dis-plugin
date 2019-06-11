@@ -4,7 +4,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.streaming.dis.{ConsumerStrategies, DISUtils}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 
-object DISSparkStreamingExample {
+object DISSparkStreamingAssignExample {
   def main(args: Array[String]): Unit = {
     println("Start DIS Spark Streaming demo.")
     if (args.length < 8) {
@@ -25,7 +25,7 @@ object DISSparkStreamingExample {
     val (endpoint, region, ak, sk, projectId, streamName, startingOffsets, duration)
     = (args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7))
 
-    val sparkConf = new SparkConf().setAppName("Spark streaming DIS example")
+    val sparkConf = new SparkConf().setAppName("Spark streaming DIS Assign example")
     val ssc = new StreamingContext(sparkConf, Seconds(duration.toInt))
 
     val params = Map(

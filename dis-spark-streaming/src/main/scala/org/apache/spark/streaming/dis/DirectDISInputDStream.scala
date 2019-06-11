@@ -21,8 +21,8 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicReference
 import java.{util => ju}
 
-import org.apache.kafka.clients.consumer._
-import org.apache.kafka.common.TopicPartition
+import com.huaweicloud.dis.adapter.kafka.clients.consumer.{Consumer, ConsumerRecord, OffsetAndMetadata, OffsetCommitCallback}
+import com.huaweicloud.dis.adapter.kafka.common.TopicPartition
 import org.apache.spark.internal.Logging
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.dstream._
@@ -291,8 +291,8 @@ private[spark] class DirectDISInputDStream[K, V](
    * Queue up offset ranges for commit to Kafka at a future time.  Threadsafe.
    * @param offsetRanges The maximum untilOffset for a given partition will be used at commit.
    */
-  def commitAsync(offsetRanges: Array[OffsetRange]): Unit = {
-    commitAsync(offsetRanges, null)
+  def commitNextDurationAsync(offsetRanges: Array[OffsetRange]): Unit = {
+    commitNextDurationAsync(offsetRanges, null)
   }
 
   /**
@@ -300,7 +300,7 @@ private[spark] class DirectDISInputDStream[K, V](
    * @param offsetRanges The maximum untilOffset for a given partition will be used at commit.
    * @param callback Only the most recently provided callback will be used at commit.
    */
-  def commitAsync(offsetRanges: Array[OffsetRange], callback: OffsetCommitCallback): Unit = {
+  def commitNextDurationAsync(offsetRanges: Array[OffsetRange], callback: OffsetCommitCallback): Unit = {
     commitCallback.set(callback)
     commitQueue.addAll(ju.Arrays.asList(offsetRanges: _*))
   }
@@ -324,11 +324,23 @@ private[spark] class DirectDISInputDStream[K, V](
     if (!m.isEmpty) {
       val off = m.asScala.map(item => item._1.toString + "=" + item._2.offset())
       consumer.commitAsync(m, commitCallback.get)
-      logInfo("CommitAsync " + off)
+      logInfo("commitAll " + off)
     }
   }
 
   def commitNow(offsetRanges: Array[OffsetRange]): Unit = {
+    commitAsync(offsetRanges, null)
+  }
+
+  def commitNow(offsetRanges: Array[OffsetRange], callback: OffsetCommitCallback): Unit = {
+    commitAsync(offsetRanges, callback);
+  }
+
+  def commitAsync(offsetRanges: Array[OffsetRange]): Unit = {
+    commitAsync(offsetRanges, null)
+  }
+
+  def commitAsync(offsetRanges: Array[OffsetRange], callback: OffsetCommitCallback): Unit = {
     val m = new ju.HashMap[TopicPartition, OffsetAndMetadata]()
     offsetRanges.map(osr => {
       if (osr.fromOffset != osr.untilOffset) {
@@ -347,8 +359,8 @@ private[spark] class DirectDISInputDStream[K, V](
       val off = m.asScala.map(item => item._1.toString + "=" + item._2.offset())
       val c = consumer
       this.synchronized {
-        c.commitAsync(m, null)
-        logInfo("CommitNow " + off)
+        c.commitAsync(m, callback)
+        logInfo("commitAsync " + off)
       }
     }
   }

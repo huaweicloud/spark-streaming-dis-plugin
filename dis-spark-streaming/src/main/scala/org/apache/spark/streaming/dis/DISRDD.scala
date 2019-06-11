@@ -17,17 +17,17 @@
 
 package org.apache.spark.streaming.dis
 
-import java.{ util => ju }
+import java.{util => ju}
 
-import org.apache.kafka.clients.consumer.{ ConsumerConfig, ConsumerRecord }
-import org.apache.kafka.common.TopicPartition
-
-import org.apache.spark.{Partition, SparkContext, TaskContext}
+import com.huaweicloud.dis.adapter.common.consumer.DisConsumerConfig
+import com.huaweicloud.dis.adapter.kafka.clients.consumer.ConsumerRecord
+import com.huaweicloud.dis.adapter.kafka.common.TopicPartition
 import org.apache.spark.internal.Logging
 import org.apache.spark.partial.{BoundedDouble, PartialResult}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.ExecutorCacheTaskLocation
 import org.apache.spark.storage.StorageLevel
+import org.apache.spark.{Partition, SparkContext, TaskContext}
 
 /**
  * A batch-oriented interface for consuming from Kafka.
@@ -54,13 +54,13 @@ private[spark] class DISRDD[K, V](
 ) extends RDD[ConsumerRecord[K, V]](sc, Nil) with Logging with HasOffsetRanges {
 
   require("none" ==
-    kafkaParams.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).asInstanceOf[String],
-    ConsumerConfig.AUTO_OFFSET_RESET_CONFIG +
+    kafkaParams.get(DisConsumerConfig.AUTO_OFFSET_RESET_CONFIG).asInstanceOf[String],
+    DisConsumerConfig.AUTO_OFFSET_RESET_CONFIG +
       " must be set to none for executor kafka params, else messages may not match offsetRange")
 
   require(false ==
-    kafkaParams.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG).asInstanceOf[Boolean],
-    ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG +
+    kafkaParams.get(DisConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG).asInstanceOf[Boolean],
+    DisConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG +
       " must be set to false for executor kafka params, else offsets may commit before processing")
 
   // TODO is it necessary to have separate configs for initial poll time vs ongoing poll time?
