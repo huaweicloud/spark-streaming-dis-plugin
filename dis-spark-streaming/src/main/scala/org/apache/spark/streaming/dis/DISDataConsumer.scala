@@ -24,7 +24,6 @@ import com.huaweicloud.dis.adapter.kafka.clients.consumer.{ConsumerRecord, DISKa
 import com.huaweicloud.dis.adapter.kafka.common.TopicPartition
 import com.huaweicloud.dis.exception.DISClientException
 import org.apache.spark.TaskContext
-import org.apache.spark.internal.Logging
 
 private[dis] sealed trait DISDataConsumer[K, V] {
   /**
@@ -83,7 +82,7 @@ private[dis] sealed trait DISDataConsumer[K, V] {
  */
 private[dis] class InternalDISConsumer[K, V](
     val topicPartition: TopicPartition,
-    val kafkaParams: ju.Map[String, Object]) extends Logging {
+    val kafkaParams: ju.Map[String, Object]) extends MyLogging {
 
   private val initialInterval = 100
 
@@ -138,9 +137,9 @@ private[dis] class InternalDISConsumer[K, V](
    * Sequential forward access will use buffers, but random access will be horribly inefficient.
    */
   def get(offset: Long, timeout: Long): ConsumerRecord[K, V] = {
-    logDebug(s"Get $groupId $topicPartition nextOffset $nextOffset requested $offset")
+    myLogDebug(s"Get $groupId $topicPartition nextOffset $nextOffset requested $offset")
     if (offset != nextOffset) {
-      logInfo(s"Initial fetch for $groupId $topicPartition $offset")
+      myLogInfo(s"Initial fetch for $groupId $topicPartition $offset")
       seek(offset)
       poll(timeout)
     }
@@ -153,7 +152,7 @@ private[dis] class InternalDISConsumer[K, V](
     var record = buffer.next()
 
     if (record.offset != offset) {
-      logInfo(s"Buffer miss for $groupId $topicPartition $offset")
+      myLogInfo(s"Buffer miss for $groupId $topicPartition $offset")
       seek(offset)
       poll(timeout)
       require(buffer.hasNext(),
@@ -174,10 +173,10 @@ private[dis] class InternalDISConsumer[K, V](
    * Start a batch on a compacted topic
    */
   def compactedStart(offset: Long, pollTimeoutMs: Long): Unit = {
-    logDebug(s"compacted start $groupId $topicPartition starting $offset")
+    myLogDebug(s"compacted start $groupId $topicPartition starting $offset")
     // This seek may not be necessary, but it's hard to tell due to gaps in compacted topics
     if (offset != nextOffset) {
-      logInfo(s"Initial fetch for compacted $groupId $topicPartition $offset")
+      myLogInfo(s"Initial fetch for compacted $groupId $topicPartition $offset")
       seek(offset)
       poll(pollTimeoutMs)
     }
@@ -208,7 +207,7 @@ private[dis] class InternalDISConsumer[K, V](
   }
 
   private def seek(offset: Long): Unit = {
-    logDebug(s"Seeking to $topicPartition $offset")
+    myLogDebug(s"Seeking to $topicPartition $offset")
     consumer.seek(topicPartition, offset)
   }
 
@@ -235,7 +234,7 @@ private[dis] class InternalDISConsumer[K, V](
           execution = backOff.start
         }
         val sleepTime = execution.nextBackOff
-        logWarning(s"Polled $topicPartition 0 records cost ${callEndTime - callStartTime}ms" +
+        myLogWarning(s"Polled $topicPartition 0 records cost ${callEndTime - callStartTime}ms" +
           s", will retry after ${sleepTime}ms, total retry count $retryCount, total cost ${totalCostTime}ms")
         Thread.sleep(sleepTime)
         retryCount = retryCount + 1
@@ -251,7 +250,7 @@ private[dis] class InternalDISConsumer[K, V](
     if (retryCount > 0) {
       log += s", total retry count $retryCount, total cost ${totalCostTime}ms."
     }
-    logInfo(log)
+    myLogInfo(log)
     buffer = recordList.listIterator
   }
 
@@ -259,7 +258,7 @@ private[dis] class InternalDISConsumer[K, V](
 
 private[dis] case class CacheKey(groupId: String, topicPartition: TopicPartition)
 
-private[dis] object DISDataConsumer extends Logging {
+private[dis] object DISDataConsumer extends MyLogging {
 
   private case class CachedDISDataConsumer[K, V](internalConsumer: InternalDISConsumer[K, V])
     extends DISDataConsumer[K, V] {
@@ -284,7 +283,7 @@ private[dis] object DISDataConsumer extends Logging {
       maxCapacity: Int,
       loadFactor: Float): Unit = synchronized {
     if (null == cache) {
-      logInfo(s"Initializing cache $initialCapacity $maxCapacity $loadFactor")
+      myLogInfo(s"Initializing cache $initialCapacity $maxCapacity $loadFactor")
       cache = new ju.LinkedHashMap[CacheKey, InternalDISConsumer[_, _]](
         initialCapacity, loadFactor, true) {
         override def removeEldestEntry(
@@ -300,14 +299,14 @@ private[dis] object DISDataConsumer extends Logging {
           // active consumers.
 
           if (entry.getValue.inUse == false && this.size > maxCapacity) {
-            logWarning(
+            myLogWarning(
                 s"KafkaConsumer cache hitting max capacity of $maxCapacity, " +
                 s"removing consumer for ${entry.getKey}")
                try {
               entry.getValue.close()
             } catch {
               case x: DISClientException =>
-                logError("Error closing oldest Kafka consumer", x)
+                myLogError("Error closing oldest Kafka consumer", x)
             }
             true
           } else {
@@ -342,7 +341,7 @@ private[dis] object DISDataConsumer extends Logging {
       // If this is reattempt at running the task, then invalidate cached consumers if any and
       // start with a new one. If prior attempt failures were cache related then this way old
       // problematic consumers can be removed.
-      logDebug(s"Reattempt detected, invalidating cached consumer $existingInternalConsumer")
+      myLogDebug(s"Reattempt detected, invalidating cached consumer $existingInternalConsumer")
       if (existingInternalConsumer != null) {
         // Consumer exists in cache. If its in use, mark it for closing later, or close it now.
         if (existingInternalConsumer.inUse) {
@@ -355,28 +354,28 @@ private[dis] object DISDataConsumer extends Logging {
         }
       }
 
-      logDebug("Reattempt detected, new non-cached consumer will be allocated " +
+      myLogDebug("Reattempt detected, new non-cached consumer will be allocated " +
         s"$newInternalConsumer")
       NonCachedDISDataConsumer(newInternalConsumer)
     } else if (!useCache) {
       // If consumer reuse turned off, then do not use it, return a new consumer
-      logDebug("Cache usage turned off, new non-cached consumer will be allocated " +
+      myLogDebug("Cache usage turned off, new non-cached consumer will be allocated " +
         s"$newInternalConsumer")
       NonCachedDISDataConsumer(newInternalConsumer)
     } else if (existingInternalConsumer == null) {
       // If consumer is not already cached, then put a new in the cache and return it
-      logDebug("No cached consumer, new cached consumer will be allocated " +
+      myLogDebug("No cached consumer, new cached consumer will be allocated " +
         s"$newInternalConsumer")
       cache.put(key, newInternalConsumer)
       CachedDISDataConsumer(newInternalConsumer)
     } else if (existingInternalConsumer.inUse) {
       // If consumer is already cached but is currently in use, then return a new consumer
-      logDebug("Used cached consumer found, new non-cached consumer will be allocated " +
+      myLogDebug("Used cached consumer found, new non-cached consumer will be allocated " +
         s"$newInternalConsumer")
       NonCachedDISDataConsumer(newInternalConsumer)
     } else {
       // If consumer is already cached and is currently not in use, then return that consumer
-      logDebug(s"Not used cached consumer found, re-using it $existingInternalConsumer")
+      myLogDebug(s"Not used cached consumer found, re-using it $existingInternalConsumer")
       existingInternalConsumer.inUse = true
       // Any given TopicPartition should have a consistent key and value type
       CachedDISDataConsumer(existingInternalConsumer.asInstanceOf[InternalDISConsumer[K, V]])
@@ -400,7 +399,7 @@ private[dis] object DISDataConsumer extends Logging {
       // at all. This may happen if the cache was invalidate while this consumer was being used.
       // Just close this consumer.
       internalConsumer.close()
-      logInfo(s"Released a supposedly cached consumer that was not found in the cache " +
+      myLogInfo(s"Released a supposedly cached consumer that was not found in the cache " +
         s"$internalConsumer")
     }
   }

@@ -25,7 +25,6 @@ import com.huaweicloud.dis.adapter.kafka.clients.consumer.internals.NoOpConsumer
 import com.huaweicloud.dis.adapter.kafka.clients.consumer.{Consumer, DISKafkaConsumer}
 import com.huaweicloud.dis.adapter.kafka.common.TopicPartition
 import org.apache.spark.annotation.Experimental
-import org.apache.spark.internal.Logging
 
 import scala.collection.JavaConverters._
 
@@ -76,7 +75,7 @@ private case class Subscribe[K, V](
     topics: ju.Collection[jl.String],
     kafkaParams: ju.Map[String, Object],
     offsets: ju.Map[TopicPartition, jl.Long]
-  ) extends ConsumerStrategy[K, V] with Logging {
+  ) extends ConsumerStrategy[K, V] with MyLogging {
   
   def executorKafkaParams: ju.Map[String, Object] = kafkaParams
 
@@ -100,7 +99,7 @@ private case class Subscribe[K, V](
         consumer.poll(0)
       } catch {
         case x: NoOffsetForPartitionException if shouldSuppress =>
-          logWarning("Catching NoOffsetForPartitionException since " +
+          myLogWarning("Catching NoOffsetForPartitionException since " +
             DisConsumerConfig.AUTO_OFFSET_RESET_CONFIG + " is none.  See KAFKA-3370")
       }
       toSeek.asScala.mapValues(l => l.asInstanceOf[Long]).foreach {
@@ -134,7 +133,7 @@ private case class SubscribePattern[K, V](
     pattern: ju.regex.Pattern,
     kafkaParams: ju.Map[String, Object],
     offsets: ju.Map[TopicPartition, jl.Long]
-  ) extends ConsumerStrategy[K, V] with Logging {
+  ) extends ConsumerStrategy[K, V] with MyLogging {
 
   def executorKafkaParams: ju.Map[String, Object] = kafkaParams
 
@@ -155,7 +154,7 @@ private case class SubscribePattern[K, V](
         consumer.poll(0)
       } catch {
         case x: NoOffsetForPartitionException if shouldSuppress =>
-          logWarning("Catching NoOffsetForPartitionException since " +
+          myLogWarning("Catching NoOffsetForPartitionException since " +
             DisConsumerConfig.AUTO_OFFSET_RESET_CONFIG + " is none.  See KAFKA-3370")
       }
       toSeek.asScala.mapValues(l => l.asInstanceOf[Long]).foreach {

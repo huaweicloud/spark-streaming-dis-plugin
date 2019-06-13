@@ -27,7 +27,6 @@ import com.huaweicloud.dis.{DISClient, DISConfig}
 import org.apache.spark.SparkContext
 import org.apache.spark.annotation.Experimental
 import org.apache.spark.api.java.{JavaRDD, JavaSparkContext}
-import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.api.java.{JavaInputDStream, JavaStreamingContext}
@@ -38,7 +37,7 @@ import org.apache.spark.streaming.dstream._
  * object for constructing Kafka streams and RDDs
  */
 @Experimental
-object DISUtils extends Logging {
+object DISUtils extends MyLogging {
   /**
    * :: Experimental ::
    * Scala constructor for a batch-oriented interface for consuming from Kafka.
@@ -74,7 +73,7 @@ object DISUtils extends Logging {
     val kp = new ju.HashMap[String, Object](kafkaParams)
     fixKafkaParams(kp)
     val osr = offsetRanges.clone()
-    logInfo(s"OffsetRanges is ${offsetRanges.deep.mkString(", ")}")
+    myLogInfo(s"OffsetRanges is ${offsetRanges.deep.mkString(", ")}")
     new DISRDD[K, V](sc, kp, osr, preferredHosts, true)
   }
   
@@ -221,19 +220,19 @@ object DISUtils extends Logging {
    * Tweak kafka params to prevent issues on executors
    */
   private[dis] def fixKafkaParams(kafkaParams: ju.HashMap[String, Object]): Unit = {
-    logWarning(s"overriding ${DisConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG} to false for executor")
+    myLogWarning(s"overriding ${DisConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG} to false for executor")
     kafkaParams.put(DisConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false: java.lang.Boolean)
 
-    logWarning(s"overriding ${DisConsumerConfig.AUTO_OFFSET_RESET_CONFIG} to none for executor")
+    myLogWarning(s"overriding ${DisConsumerConfig.AUTO_OFFSET_RESET_CONFIG} to none for executor")
     kafkaParams.put(DisConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none")
 
     // driver and executor should be in different consumer groups
     val originalGroupId = kafkaParams.get(DisConsumerConfig.GROUP_ID_CONFIG)
     if (null == originalGroupId) {
-      logError(s"${DisConsumerConfig.GROUP_ID_CONFIG} is null, you should probably set it")
+      myLogError(s"${DisConsumerConfig.GROUP_ID_CONFIG} is null, you should probably set it")
     }
     val groupId = "spark-executor-" + originalGroupId
-    logWarning(s"overriding executor ${DisConsumerConfig.GROUP_ID_CONFIG} to ${groupId}")
+    myLogWarning(s"overriding executor ${DisConsumerConfig.GROUP_ID_CONFIG} to ${groupId}")
     kafkaParams.put(DisConsumerConfig.GROUP_ID_CONFIG, groupId)
   }
 
@@ -264,11 +263,11 @@ object DISUtils extends Logging {
         val endOffset = consumer.position(topicPartition)
         if (fromOffset == -1) {
           fromOffset = endOffset
-          log.info(s"Stream ${r.topic} partition ${r.partition} fromOffset set to -1, overriding fromOffset to $fromOffset")
+          myLogInfo(s"Stream ${r.topic} partition ${r.partition} fromOffset set to -1, overriding fromOffset to $fromOffset")
         }
         if (untilOffset == -1) {
           untilOffset = endOffset
-          log.info(s"Stream ${r.topic} partition ${r.partition} untilOffset set to -1, overriding untilOffset to $untilOffset")
+          myLogInfo(s"Stream ${r.topic} partition ${r.partition} untilOffset set to -1, overriding untilOffset to $untilOffset")
         }
       }
 
@@ -277,12 +276,12 @@ object DISUtils extends Logging {
         val startOffset = consumer.position(topicPartition)
         if (fromOffset == -2) {
           fromOffset = startOffset
-          log.info(s"Stream ${r.topic} partition ${r.partition} fromOffset set to -2, overriding fromOffset to $fromOffset")
+          myLogInfo(s"Stream ${r.topic} partition ${r.partition} fromOffset set to -2, overriding fromOffset to $fromOffset")
         }
 
         if (untilOffset == -2) {
           untilOffset = startOffset
-          log.info(s"Stream ${r.topic} partition ${r.partition} untilOffset set to -2, overriding untilOffset to $untilOffset")
+          myLogInfo(s"Stream ${r.topic} partition ${r.partition} untilOffset set to -2, overriding untilOffset to $untilOffset")
         }
       }
 
@@ -357,7 +356,7 @@ object DISUtils extends Logging {
       topicPartitions = topicPartitions :+ new TopicPartition(streamName, index)
     }
 
-    logInfo(s"DIS Stream [$streamName] has ${topicPartitions.size} partitions.")
+    myLogInfo(s"DIS Stream [$streamName] has ${topicPartitions.size} partitions.")
     topicPartitions
   }
 

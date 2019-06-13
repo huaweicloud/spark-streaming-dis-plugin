@@ -23,7 +23,6 @@ import java.{util => ju}
 
 import com.huaweicloud.dis.adapter.kafka.clients.consumer.{Consumer, ConsumerRecord, OffsetAndMetadata, OffsetCommitCallback}
 import com.huaweicloud.dis.adapter.kafka.common.TopicPartition
-import org.apache.spark.internal.Logging
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.dstream._
 import org.apache.spark.streaming.scheduler.rate.RateEstimator
@@ -53,7 +52,7 @@ private[spark] class DirectDISInputDStream[K, V](
     locationStrategy: LocationStrategy,
     consumerStrategy: ConsumerStrategy[K, V],
     ppc: PerPartitionConfig
-  ) extends InputDStream[ConsumerRecord[K, V]](_ssc) with Logging with CanCommitOffsets {
+  ) extends InputDStream[ConsumerRecord[K, V]](_ssc) with MyLogging with CanCommitOffsets {
 
   private val initialRate = context.sparkContext.getConf.getLong(
     "spark.streaming.backpressure.initialRate", 0)
@@ -75,7 +74,7 @@ private[spark] class DirectDISInputDStream[K, V](
   }
 
   override def persist(newLevel: StorageLevel): DStream[ConsumerRecord[K, V]] = {
-    logError("Kafka ConsumerRecord is not serializable. " +
+    myLogError("Kafka ConsumerRecord is not serializable. " +
       "Use .map to extract fields before calling .persist or .window")
     super.persist(newLevel)
   }
@@ -174,7 +173,7 @@ private[spark] class DirectDISInputDStream[K, V](
         val off = acc.get(tp).map(o => Math.min(o, m.offset)).getOrElse(m.offset)
         acc + (tp -> off)
       }.foreach { case (tp, off) =>
-          logInfo(s"poll(0) returned messages, seeking $tp to $off to compensate")
+          myLogInfo(s"poll(0) returned messages, seeking $tp to $off to compensate")
           c.seek(tp, off)
       }
     }
@@ -191,7 +190,7 @@ private[spark] class DirectDISInputDStream[K, V](
     // make sure new partitions are reflected in currentOffsets
     val newPartitions = parts.diff(currentOffsets.keySet)
     if (newPartitions.nonEmpty) {
-      logInfo(s"New partitions $newPartitions")
+      myLogInfo(s"New partitions $newPartitions")
       // position for new partitions determined by auto.offset.reset if no commit
       currentOffsets = currentOffsets ++ newPartitions.map(tp => tp -> c.position(tp)).toMap
     }
@@ -204,7 +203,7 @@ private[spark] class DirectDISInputDStream[K, V](
       //        s"rebalance. This is mostly due to another stream with same group id joined, " +
       //        s"please check if there're different streaming application misconfigure to use same " +
       //        s"group id. Fundamentally different stream should use different group id")
-      logInfo(s"Revoke partitions $revokedPartitions")
+      myLogInfo(s"Revoke partitions $revokedPartitions")
       currentOffsets = currentOffsets -- revokedPartitions
     }
 
@@ -324,7 +323,7 @@ private[spark] class DirectDISInputDStream[K, V](
     if (!m.isEmpty) {
       val off = m.asScala.map(item => item._1.toString + "=" + item._2.offset())
       consumer.commitAsync(m, commitCallback.get)
-      logInfo("commitAll " + off)
+      myLogInfo("commitAll " + off)
     }
   }
 
@@ -360,7 +359,7 @@ private[spark] class DirectDISInputDStream[K, V](
       val c = consumer
       this.synchronized {
         c.commitAsync(m, callback)
-        logInfo("commitAsync " + off)
+        myLogInfo("commitAsync " + off)
       }
     }
   }
@@ -383,7 +382,7 @@ private[spark] class DirectDISInputDStream[K, V](
 
     override def restore(): Unit = {
       batchForTime.toSeq.sortBy(_._1)(Time.ordering).foreach { case (t, b) =>
-         logInfo(s"Restoring DISRDD for time $t ${b.mkString("[", ", ", "]")}")
+         myLogInfo(s"Restoring DISRDD for time $t ${b.mkString("[", ", ", "]")}")
          generatedRDDs += t -> new DISRDD[K, V](
            context.sparkContext,
            executorKafkaParams,

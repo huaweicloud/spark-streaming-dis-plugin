@@ -33,7 +33,7 @@ under the License.
             <artifactId>huaweicloud-dis-kafka-adapter</artifactId>
             <version>${dis-kafka-adapter.version}</version>
         </dependency>
-        
+
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-streaming_${scala.binary.version}</artifactId>
@@ -42,4 +42,29 @@ under the License.
         </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>doc-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <scalaVersion>${scala.binary.version}</scalaVersion>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
