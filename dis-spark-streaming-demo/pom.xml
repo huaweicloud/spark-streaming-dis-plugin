@@ -11,7 +11,7 @@
 
     <properties>
         <dis-kafka-adapter.version>1.2.2</dis-kafka-adapter.version>
-        <dis-spark-streaming_2.11.version>1.2.1-SNAPSHOT</dis-spark-streaming_2.11.version>
+        <dis-spark-streaming_2.11.version>1.2.1</dis-spark-streaming_2.11.version>
         <scala.binary.version>2.11</scala.binary.version>
         <spark_2.11.version>2.2.0</spark_2.11.version>
         
