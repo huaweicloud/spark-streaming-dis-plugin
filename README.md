@@ -18,7 +18,7 @@ The recommended way to use the DIS SDK for SparkStreaming in your project is to 
     <dependency>
         <groupId>com.huaweicloud.dis</groupId>
         <artifactId>huaweicloud-dis-spark-streaming_2.11</artifactId>
-        <version>1.2.1</version>
+        <version>1.2.2</version>
         <scope>compile</scope>
     </dependency>
 

@@ -21,7 +21,7 @@ under the License.
     <parent>
         <groupId>com.huaweicloud.dis</groupId>
         <artifactId>huaweicloud-dis-spark-streaming-parent_2.11</artifactId>
-        <version>1.2.2-SNAPSHOT</version>
+        <version>1.2.3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>huaweicloud-dis-spark-streaming_2.11</artifactId>
